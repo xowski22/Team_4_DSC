@@ -25,6 +25,7 @@ Team 4's solution for the [Kaggle Product Recommendation Challenge](https://www.
 
 - Kaggle API
   - `pip install kaggle`
+  - more info [here](https://www.kaggle.com/docs/api) or [here](https://github.com/Kaggle/kaggle-api)
 - Python 3.10
 - Jupyter Notebook
 
