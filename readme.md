@@ -33,6 +33,7 @@ Team 4's solution for the [Kaggle Product Recommendation Challenge](https://www.
 
 1. Clone the repository
 2. Install the dependencies
-3. Download the data from Kaggle:
-    - `kaggle competitions download -c product-recommendation-challenge`
+3. Download the data using the `download-data.sh` script:
+    - `chmod +x download-data.sh`
+    - `./download-data.sh`
 4. run the notebooks
