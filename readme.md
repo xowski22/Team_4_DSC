@@ -21,6 +21,13 @@ Team 4's solution for the [Kaggle Product Recommendation Challenge](https://www.
 3. Recommendation model development
 4. Model evaluation and submission
 
+## Prerequisites
+
+- Kaggle API
+  - `pip install kaggle`
+- Python 3.10
+- Jupyter Notebook
+
 ## How to run project
 
 1. Clone the repository
