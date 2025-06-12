@@ -20,3 +20,11 @@ Team 4's solution for the [Kaggle Product Recommendation Challenge](https://www.
 2. Feature engineering
 3. Recommendation model development
 4. Model evaluation and submission
+
+## How to run project
+
+1. Clone the repository
+2. Install the dependencies
+3. Download the data from Kaggle:
+    - `kaggle competitions download -c product-recommendation-challenge`
+4. run the notebooks
