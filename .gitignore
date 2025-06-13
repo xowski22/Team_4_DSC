@@ -408,3 +408,7 @@ FodyWeavers.xsd
 tmp/
 data/*.json
 data/*.csv
+
+.DS_Store
+.cursor
+.cursorignore
