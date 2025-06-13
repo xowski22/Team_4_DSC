@@ -412,4 +412,4 @@ data/*.csv
 .DS_Store
 .cursor
 .cursorignore
-.mgr
+.prd
