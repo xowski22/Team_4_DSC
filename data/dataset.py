@@ -244,4 +244,4 @@ class RecommendationDataLoader:
         if self.dataset.test_data is None:
             self.dataset.load_data()
 
-        return self.dataset.test_data['user_id'].toList()
+        return self.dataset.test_data['user_id'].to_list()
