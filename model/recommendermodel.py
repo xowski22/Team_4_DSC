@@ -6,15 +6,17 @@ from typing import List, Tuple
 
 class RecommenderModel(nn.Module):
 
-    def __init__(self, n_users: int, n_items: int, embedding_dim: int):
+    def __init__(self, n_users: int, n_items: int, embedding_dim: int, n_categories: int):
         super(RecommenderModel, self).__init__()
         self.n_users = n_users
         self.n_items = n_items
         self.embedding_dim = embedding_dim
+        self.n_categories = n_categories
 
         #Embeddingi
         self.user_embeddings = nn.Embedding(n_users, embedding_dim)
         self.item_embeddings = nn.Embedding(n_items, embedding_dim)
+        self.category_embeddings = nn.Embedding(n_categories, embedding_dim // 4)
 
         #Bias
         self.user_bias = nn.Embedding(n_users, 1)
@@ -26,32 +28,37 @@ class RecommenderModel(nn.Module):
         nn.init.normal_(self.item_embeddings.weight, std=0.01)
         nn.init.zeros_(self.user_bias.weight)
         nn.init.zeros_(self.item_bias.weight)
+        nn.init.normal_(self.category_embeddings.weight, std=0.001)
 
-    def forward(self, user_ids, item_ids):
+        self.dropout = nn.Dropout(0.2)
 
-        user_emb = self.user_embeddings(user_ids)
-        item_emb = self.item_embeddings(item_ids)
+    def forward(self, user_ids, item_ids, category_ids):
+
+        user_emb = self.dropout(self.user_embeddings(user_ids))
+        item_emb = self.dropout(self.item_embeddings(item_ids))
+        cat_emb = self.category_embeddings(category_ids)
 
         interaction = (user_emb * item_emb).sum(dim=1)
 
         user_b = self.user_bias(user_ids).squeeze()
         item_b = self.item_bias(item_ids).squeeze()
+        cat_score = cat_emb.sum(dim=1)
 
-        prediction = interaction + user_b + item_b + self.global_bias
+        prediction = interaction + user_b + item_b + self.global_bias + cat_score * 0.1
 
         return prediction
 
-    def predict_probability(self, user_ids, item_ids):
+    def predict_probability(self, user_ids, item_ids, category_ids):
 
-        logits = self.forward(user_ids, item_ids)
+        logits = self.forward(user_ids, item_ids, category_ids)
         return torch.sigmoid(logits)
 
-    def recommend_top_k(self, user_id: int, k: int = 10, device = 'cuda') -> List[int]:
+    def recommend_top_k(self, user_id: int, item_categories, k: int = 10, device = 'cuda') -> List[int]:
 
         self.eval()
-        self.to(self.device)
+        self.to(device)
 
-        batch_size = 4096
+        batch_size = 8192
         all_scores = []
 
         with torch.no_grad():
@@ -59,8 +66,9 @@ class RecommenderModel(nn.Module):
                 end_idx = min(start_idx + batch_size, self.n_items)
                 batch_items = torch.arange(start_idx, end_idx, device=device)
                 batch_users = torch.full((len(batch_items),), user_id, device=device)
+                batch_categories = torch.tensor(item_categories[start_idx:end_idx], device=device)
 
-                scores = self.predict_probability(batch_users, batch_items)
+                scores = self.predict_probability(batch_users, batch_items, batch_categories)
                 all_scores.append(scores)
 
         all_scores = torch.cat(all_scores)
@@ -77,7 +85,7 @@ class RecommenderModel(nn.Module):
 
     def find_similar_users(self, user_id: int, k: int = 10, device = 'cuda') -> List[Tuple[int, float]]:
         self.eval()
-        self.to(self.device)
+        self.to(device)
 
         with torch.no_grad():
             target_user_emb = self.user_embeddings(torch.tensor([user_id], device=device))
@@ -97,7 +105,7 @@ class RecommenderModel(nn.Module):
 
     def find_similar_items(self, item_id: int, k: int = 10, device='cuda') -> List[Tuple[int, float]]:
         self.eval()
-        self.to(self.device)
+        self.to(device)
 
         with torch.no_grad():
             target_item_emb = self.item_embeddings(torch.tensor([item_id], device=device))
@@ -118,7 +126,7 @@ class RecommenderModel(nn.Module):
     def recommend_by_similarity(self, user_id: int, k: int = 10,
                                 similar_users_count: int = 50, device = 'cuda') -> List[int]:
         self.eval()
-        self.to(self.device)
+        self.to(device)
 
         similar_users = self.find_similar_users(user_id, similar_users_count, device=device)
 

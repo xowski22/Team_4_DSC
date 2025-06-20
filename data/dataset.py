@@ -30,6 +30,9 @@ class RecommendationDataset:
         self.n_users = None
         self.n_items = None
         self.n_interactions = None
+        self.category_mapping = None
+        self.item_categories = None
+        self.n_categories = 0
 
     def load_data(self):
         train_file = self.data_path / 'train.csv'
@@ -53,11 +56,31 @@ class RecommendationDataset:
         self.n_items = self.train_data['item_id'].max() + 1
         self.n_interactions = len(self.train_data)
 
+        self.prepare_metadata_features()
+
         print("Datasets info:")
         print(f"   Users: {self.n_users:,}")
         print(f"   Items: {self.n_items:,}")
         print(f"   Interactions: {self.n_interactions:,}")
         print(f"   Sparsity: {(1 - self.n_interactions / (self.n_users * self.n_items)) * 100:.4f}%")
+
+    def prepare_metadata_features(self):
+        categories = self.item_metadata['main_category'].fillna('Unknown').unique()
+        self.category_mapping = {cat: idx for idx, cat in enumerate(categories)}
+        self.n_categories = len(categories)
+
+        print(f"Found {self.n_categories} category mappings")
+
+        self.item_categories = np.zeros(self.n_items, dtype=int)
+
+        for _, row in self.item_metadata.iterrows():
+            parent_asin = row['parent_asin']
+            category = row['main_category'] if pd.notna(row['main_category']) else 'Unknown'
+
+            if str(parent_asin) in self.id_mappings['item_mapping']:
+                internal_item_id = self.id_mappings['item_mapping'][str(parent_asin)]
+                if internal_item_id < self.n_items:
+                    self.item_categories[internal_item_id] = self.category_mapping[category]
 
     def create_user_item_matrix(self) -> sparse.csr_matrix:
         if self.user_item_matrix is None:
@@ -190,18 +213,23 @@ class RecommendationDataset:
 
 class RecommendationDatasetTorch(Dataset):
     """Wrapper dla torcha do danych treningowych"""
-    def __init__(self, samples: List[Tuple[int, int, float]]):
+    def __init__(self, samples: List[Tuple[int, int, float]], dataset):
         self.samples = samples
+        self.dataset = dataset
 
     def __len__(self):
         return len(self.samples)
 
     def __getitem__(self, idx):
         user_id, item_id, rating = self.samples[idx]
+
+        category_id = self.dataset.item_categories[item_id]
+
         return {
             'user_id': torch.tensor(user_id, dtype=torch.long),
             'item_id': torch.tensor(item_id, dtype=torch.long),
-            'rating': torch.tensor(rating, dtype=torch.float32)
+            'rating': torch.tensor(rating, dtype=torch.float32),
+            'category_id': torch.tensor(category_id, dtype=torch.long),
         }
 
 class RecommendationDataLoader:
@@ -225,10 +253,9 @@ class RecommendationDataLoader:
             self.dataset.create_train_val_split()
 
         train_samples = self.dataset.negative_sampling(self.dataset.train_matrix)
-        train_dataset = RecommendationDatasetTorch(train_samples)
+        train_dataset = RecommendationDatasetTorch(train_samples, self.dataset)
 
-        return DataLoader(train_dataset, batch_size=self.batch_size, num_workers=self.num_workers,
-                          shuffle=self.shuffle, pin_memory=True)
+        return DataLoader(train_dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=self.shuffle, pin_memory=True)
 
     def get_val_loader(self) -> DataLoader:
         if self.dataset.val_matrix is None:
@@ -236,7 +263,7 @@ class RecommendationDataLoader:
 
         rows, cols = self.dataset.val_matrix.nonzero()
         val_samples = [(r, c, 1.0) for r, c in zip(rows, cols)]
-        val_dataset = RecommendationDatasetTorch(val_samples)
+        val_dataset = RecommendationDatasetTorch(val_samples, self.dataset)
 
         return DataLoader(val_dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=False, pin_memory=True)
 

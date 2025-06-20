@@ -5,7 +5,7 @@ import os
 
 class Trainer:
 
-    def __init__(self, model, device='cuda', lr=0.001, weight_decay=1e-5, save_path='./'):
+    def __init__(self, model, device='cuda', lr=0.001, weight_decay=5e-4, save_path='./'):
         self.model = model.to(device)
         self.device = device
         self.save_path = save_path
@@ -31,9 +31,10 @@ class Trainer:
             user_ids = batch['user_id'].to(self.device, non_blocking=True)
             item_ids = batch['item_id'].to(self.device, non_blocking=True)
             ratings = batch['rating'].to(self.device, non_blocking=True)
+            category_ids = batch['category_id'].to(self.device, non_blocking=True)
 
             self.optimizer.zero_grad()
-            predictions = self.model(user_ids, item_ids)
+            predictions = self.model(user_ids, item_ids, category_ids)
             loss = self.criterion(predictions, ratings)
 
             loss.backward()
@@ -61,8 +62,9 @@ class Trainer:
                 user_ids = batch['user_id'].to(self.device, non_blocking=True)
                 item_ids = batch['item_id'].to(self.device, non_blocking=True)
                 ratings = batch['rating'].to(self.device, non_blocking=True)
+                category_ids = batch['category_id'].to(self.device, non_blocking=True)
 
-                predictions = self.model(user_ids, item_ids)
+                predictions = self.model(user_ids, item_ids, category_ids)
                 loss = self.criterion(predictions, ratings)
 
                 total_loss += loss.item()

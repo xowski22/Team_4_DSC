@@ -13,12 +13,12 @@ def main():
 
     data_path = ("./data")
 
-    embedding_dim = 64
-    batch_size = 1024
-    epochs = 20
-    learning_rate = 0.001
+    embedding_dim = 128
+    batch_size = 2048
+    epochs = 10
+    learning_rate = 0.00005
     implicit_threshold = 4.0
-    negative_sampling_ratio = 4.0
+    negative_sampling_ratio = 0.5
     validation_split = 0.2
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -53,7 +53,8 @@ def main():
     model = RecommenderModel(
         n_users=dataset.n_users,
         n_items=dataset.n_items,
-        embedding_dim=embedding_dim
+        embedding_dim=embedding_dim,
+        n_categories=dataset.n_categories
     )
 
     try:
@@ -68,7 +69,7 @@ def main():
     predictions = []
 
     for i, user_id in enumerate(test_users):
-        top_items = model.recommend_top_k(user_id, k=10, device=device)
+        top_items = model.recommend_top_k(user_id, dataset.item_categories, k=10, device=device)
         predictions.append(' '.join(map(str, top_items)))
 
         if i % 5000 == 0 and i > 0:
