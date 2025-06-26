@@ -7,6 +7,10 @@ Team 4's solution for the [Kaggle Product Recommendation Challenge](https://www.
 **Challenge Overview:**
 This is a collaborative filtering recommendation system challenge where we predict which products users will interact with based on historical user-item interactions and product metadata.
 
+Presentations of the solution are in 
+- src/train_final.ipynb
+- docs/eda.ipynb
+
 ## Team Members
 
 - [Borys Piwoński](https://github.com/xowski22)
