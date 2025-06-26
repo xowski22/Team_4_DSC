@@ -11,6 +11,8 @@ Presentations of the solution are in
 - src/train_final.ipynb
 - docs/eda.ipynb
 
+With 2 training notebooks (train, train_final), as 2 solutions performed silimarly
+
 ## Team Members
 
 - [Borys Piwoński](https://github.com/xowski22)
